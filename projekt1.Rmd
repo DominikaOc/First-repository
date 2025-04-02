@@ -1,0 +1,410 @@
+---
+title: 'Projekt: budownictwo'
+author: "Dominika Ochalik"
+date: "2024-01-18"
+output: 
+   pdf_document:
+    toc: yes
+    toc_depth: 2
+toc-title: "SPIS TREŚCI"
+---
+
+# Temat projektu
+
+Projekt nr 1 z Modelowania Deterministycznego dotyczy ogrzewania pokoju zimą. Zostały rozpatrzone dwie propozycje umieszczenia grzejnika, a następnie używając równania ciepła ustalono, w którym przypadku pokój jest lepiej ogrzewany. Następnie dla pokoju, który był lepiej ogrzewany przeanalizowano, jak wpłynie na jakość ogrzewania zmiana temperatury grzejnika w ciągu dnia.
+
+# 1. Wymiary pokoju i warianty umieszczenia grzejnika
+
+Przyjmujemy następujące wymiary:
+
+- długość pokoju: 4.5m,
+
+- szerokość pokoju: 2.5m,
+
+- szerokość okna: 1.5m,
+
+- szerokość grzejnika: 1m.
+
+Pokój wyobrażamy sobie jako płaszczyznę [0 ; 2.5] $\times$ [0 ; 4.5].
+Położenie grzejnika będziemy opisywać poprzez podanie położenia środka grzejnika, analogicznie położenie okna.
+
+Położenie okna jest stałe i równe [0.95 ; 4.5].
+
+Położenie grzejnika:
+
+- I wariant: [2.5 ; 3.5],
+
+- II wariant: [1.8, 0] (grzejnik jest na ścianie naprzeciwko okna).
+
+Zobaczmy to na ilustracji:
+
+```{r echo=F}
+par(mfrow=c(1,2))
+plot(c(0.2, 1.7, 2.5, 2.5) , c(4.5, 4.5, 4, 3), 
+    pch=16, col="blue", xlim = c(0.05, 2.44), ylim = c(0.1, 4.4),  xlab = "X",
+    ylab = "Y", main = "I wariant")
+text(x=0.95, y=4.4, labels="OKNO", col="blue", cex=0.9)
+text(x = 2, y=3.5, labels="GRZEJNIK", col="blue", cex=0.8)
+
+plot(c(0.2, 1.7, 1.3, 2.3) , c(4.5, 4.5, 0, 0), 
+    pch=16, col="blue", xlim = c(0.05, 2.44), ylim = c(0.1, 4.4),  xlab = "X",
+    ylab = "Y", main = "II wariant")
+text(x=0.95, y=4.4, labels="OKNO", col="blue", cex=0.9)
+text(x = 1.8, y=0.2, labels="GRZEJNIK", col="blue", cex=0.8)
+```
+
+
+# Równanie i założenia
+
+## Równanie opisujące rozchodzenie się temperatury
+
+Niech $u = u(x, y, t)$ będzie funkcją temperatury w położeniu $[x,y]$ i chwili t.
+
+Mamy następujące równanie przewodnictwa cieplnego:
+$$u_t = D \cdot \Delta u$$
+Można je zapisać równoważnie:
+$$u_t = D \cdot (u_{xx} + u_{yy})$$
+D to stała, która opisuje, jak szybko rozchodzi się temperatura. W tym projekcie przyjmujemy, że $D=1$.
+
+Warunek początkowy opisujący temperaturę w pokoju w chwili t=0:
+$$u(x, y, 0) = u_0(x, y)$$
+
+Zakładamy, że $u_0(x, y)  = 15$.
+
+\newpage
+## Warunki brzegowe i funkcja opisująca temperaturę na dworze
+
+**Warunki brzegowe:**
+
+- przepływ temperatury przez ściany jest równy 0, co zapisujemy jako $\frac{\partial u}{\partial \vec n} = 0$,
+
+- okna mają temperaturę $g(t) + 15$, gdzie $g(t)$ to funkcja opisująca temperaturę na dworze.
+
+
+W tym projekcie zakładamy, że temperaturę mierzymy w skali Celsjusza, a także, że g(t) wyraża się wzorem:
+
+$$g(t) = 3 \cdot sin \left(\frac{t\pi}{12} - \frac{3\pi}{4}\right) - 1$$
+
+Zobaczmy wykres funkcji $g(t)$ na przedziale $[0, 24]$:
+
+```{r echo=F}
+g = function(t){
+  return(3*sin(pi*t/12 - 3*pi/4)-1)
+}
+
+x = (1:(2400))/100
+y = g(x)
+plot(x, y, type="l", col="blue", xlab = "Czas", ylab = "Temperatura", ylim=c(-5, 3),
+     main = "Wykres zmiany temperatury na dworze")
+abline(h=0)
+```
+
+Przedział $[0, 24]$ odpowiada jednej dobie.
+
+Mając wzór funkcji, możemy wywnioskować, że:
+
+- dla $t = 3$ funkcja osiąga najmniejszą wartość równą -4,
+
+- dla $t = 12$ funkcja osiąga największą wartość równą 2.
+
+## Temperatura grzejnika
+
+Na początku zakładamy, że temperatura grzejnika jest stała przez cały dzień i równa 30 stopni Celsjusza.
+
+Następnie zobaczymy, jak zmieni się temperatura w pokoju, gdy będziemy zmieniać temperaturę grzejnika.
+
+\newpage
+# Schemat numeryczny
+
+Ze schematu Eulera otrzymujemy następujące przybliżenie $u_t$:
+
+$$u_t = \frac{u(x, y, t + h_t) - u(x, y, t)}{h_t}$$
+
+Podstawiając do równania ciepła, otrzymujemy:
+
+$$u(x, y, t+h_t) = u(x, y, t) + h_t (u_{xx} + u_{yy})$$
+
+Pochodne $u_xx$ i $u_yy$ przybliżamy następująco:
+
+
+$$u_{xx} = \frac{u(x + h_x, y, t) + u(x - h_x, y, t) - 2u(x, y, t)}{(h_x)^2}$$
+
+$$u_{yy} = \frac{u(x, y + h_y, t) + u(x, y - h_y, t) - 2u(x, y, t)}{(h_y)^2}$$
+
+\newpage
+# Wykresy: porównanie umiejscowień grzejnika
+
+```{r echo=F}
+hx = 0.1
+x = seq(0, 2.5, hx)
+hy = 0.1
+y = seq(0, 4.5, hy) 
+
+nx = length(x) #liczba kolumn
+ny = length(y) #liczba wierszy
+
+ht = 0.001
+T = 6
+t = seq(0, T, ht)
+nt = length(t)
+
+D = 1
+
+g = function(t){
+  return(3*sin(t*pi/3 - 3*pi/4)-1);
+} #funkcja opisująca zmianę temp na dworze
+
+M = array(0, dim=c(ny, nx, nt))
+#uzupełniamy pierwszą macierz:
+M[,,1] = 15
+M[6:16,nx,1] <- 30 #grzejnik
+M[1, 3:18, 1] = g(0) + 15 #okno
+
+
+ 
+for(t in 2:nt){  #uzupełniamy macierze
+  
+  for(j in 2:(nx-1)){  #kolumna
+    
+    for(i in 2:(ny-1)){ #wiersz
+      
+      u_yy = ( M[i+1, j, t-1] + M[i-1, j, t-1] - 2*M[i, j, t-1] ) / (hy^2)
+      u_xx = ( M[i, j+1, t-1] + M[i, j-1, t-1] - 2*M[i, j, t-1] ) / (hx^2)
+      M[i, j, t] = M[i, j, t-1] + D*ht*( u_xx + u_yy )
+    }
+    
+  }
+  
+  #Neumann
+  M[1,,t] = M[2,,t]
+  M[ny,,t] = M[ny-1,,t]
+  M[,1,t] = M[,2,t]
+  M[,nx,t] = M[,nx-1,t]
+  
+  #grzejnik
+  M[6:16,nx,t] = 30
+  
+  # okno
+  M[1, 3:18, t] = g(t*ht) + 15
+
+}
+```
+
+
+```{r echo=F}
+M2 = array(0, dim=c(ny, nx, nt))
+#uzupełniamy pierwszą macierz:
+M2[,,1] = 15
+M2[ny,14:24,1] <- 30 #grzejnik
+M2[1, 3:18, 1] = g(0) + 15 #okno
+
+
+ 
+for(t in 2:nt){  #uzupełniamy macierze
+  
+  for(j in 2:(nx-1)){  #kolumna
+    
+    for(i in 2:(ny-1)){ #wiersz
+      
+      u_yy = ( M2[i+1, j, t-1] + M2[i-1, j, t-1] - 2*M2[i, j, t-1] ) / (hy^2)
+      u_xx = ( M2[i, j+1, t-1] + M2[i, j-1, t-1] - 2*M2[i, j, t-1] ) / (hx^2)
+      M2[i, j, t] = M2[i, j, t-1] + D*ht*( u_xx + u_yy )
+    }
+    
+  }
+  
+  #Neumann
+  M2[1,,t] = M2[2,,t]
+  M2[ny,,t] = M2[ny-1,,t]
+  M2[,1,t] = M2[,2,t]
+  M2[,nx,t] = M2[,nx-1,t]
+  
+  #grzejnik
+  M2[ny,14:24,t] <- 30
+  
+  # okno
+  M2[1, 3:18, t] = g(t*ht) + 15
+
+}
+```
+
+Zobaczmy mapy ciepła dla obu ustawień grzejnika w chwili t=0 (pierwszy wiersz), t=12 (drugi wiersz) oraz t=24 (osttani wiersz):
+
+```{r echo=F, fig.height = 7, fig.width = 6, warning=F, message=F}
+library("fields")
+par(mfrow=c(3,2))
+image.plot(M[,,1])
+image.plot(M2[,,1])
+image.plot(M[,,3000])
+image.plot(M2[,,3000])
+image.plot(M[,,nt])
+image.plot(M2[,,nt])
+```
+
+
+\newpage
+Widzimy, że dla t=12, w przypadku umieszczenia grzejnika naprzeciwko okna, najniższa temperatura nie jest tam, gdzie okno. W przypadku drugiego wariantu najniższa temperatura jest przy oknie. To ciekawe zjawisko zobaczymy też na wykresie minimalnej i średniej temperatury.
+
+
+Zobaczmy teraz wykresy temperatury 3D, najpierw dla obu pokoi w chwili t=0 (pierwszy wiersz), a następnie dla t=24:
+
+```{r echo=F, warning=F, message=F}
+library("plotly")
+par(mfrow=c(2,2))
+fig <- plot_ly(z = M[,,1])
+fig <- fig %>% add_surface()
+fig
+
+fig2 <- plot_ly(z = M2[,,1])
+fig2 <- fig2 %>% add_surface()
+fig2
+
+fig3 <- plot_ly(z = M[,,nt])
+fig3 <- fig3 %>% add_surface()
+fig3
+
+fig4 <- plot_ly(z = M2[,,nt])
+fig4 <- fig4 %>% add_surface()
+fig4
+```
+
+Spójrzmy jeszcze na wykresy minimalnej i średniej temperatury w pokoju:
+
+```{r echo=F}
+min_temp = numeric(nt)
+mean_temp = numeric(nt)
+
+min_temp2 = numeric(nt)
+mean_temp2 = numeric(nt)
+
+
+for(iter in 1:nt){
+  min_temp[iter] = min(M[,,iter])
+  mean_temp[iter] = mean(M[,,iter])
+  
+  min_temp2[iter] = min(M2[,,iter])
+  mean_temp2[iter] = mean(M2[,,iter])
+}
+
+arg = (1:nt)*ht
+arg = arg*4
+
+plot(arg, min_temp, ylim = c(min(min_temp), max(mean_temp2)+3), xlab = "Czas",
+     ylab = "Temperatura", col= "blue", type="l")
+lines(arg, mean_temp, col = "orange")
+lines(arg, min_temp2, col="green")
+lines(arg, mean_temp2, col="red")
+legend("topleft", legend=c("Minimalna temp (I)", "Średnia temp (I)",
+      "Minimalna temp (II)", "Średnia temp (II)"),
+      col=c("blue", "orange", "green", "red"), lty=c(1, 1, 1, 1),
+       cex=0.7, bg="white")
+```
+
+Minimalna temperatura przez większy okres czasu jest taka sama. Jednak przez pewien czas (od ok 8 do 15) minimalna temperatura w pokoju z II wariantem faktycznie jest niższa niż w pokoju z I wariantem.
+
+Patrząc na mapy ciepła przedstawione na poprzednich stronach, możemy wywnioskować, że najniższa temperatura w pokoju I utszymuje się tam, gdzie jest okno. Zatem niebieski wykres możemy interpretować jako wykres temperatury okna. W drugim wariancie przez pewien okres czasu temperatura przy oknie jest wyższa niż w innych miejscach pokoju, dlatego widzimy, że zielony wykres przestaje się pokrywać z niebieskim.
+
+Średnia temperatura w obu pokojach rośnie, co świadczy o tym, że pokoje się nagrzewają. Wraz z upływem czasu tempo wzrastania średniej temperatury maleje, co oznacza, że temperatura się stabilizuje. Dla drugiego wariantu położenia grzejnika (dalej od okna) widzimy, że średnia temperatura w pokoju jest wyższa. Patrząc na wcześniejsze wykresy można zauważyć, że temperatura jest bardziej zróżnicowana niż w sytuacji, gdy grzejnik jest blisko okna.
+
+Na tym etapie możemy wyciągnąć wnioski, że **I wariant ustawienia grzejnika (bliżej okna) jest lepszy**, ponieważ powoduje mniejsze różnice temperatur w pokoju, a średnia temperatura jest niewiele niższa od tej w drugim wariancie.
+
+\newpage
+# Wykresy: porównanie temperatury, gdy zmieniamy temperaturę grzejnika
+
+Grzejnik ma najpierw stałą temperaturę równą 25 stopni, a następnie w połowie dnia zwiększamy temperaturę do 35 stopni. Zakładamy, że grzejnik stopniowo się nagrzewa i po pół godzinie osiągnie temperaturę 35 stopni.
+
+```{r echo=F}
+
+MM = array(0, dim=c(ny, nx, nt))
+#uzupełniamy pierwszą macierz:
+MM[,,1] = 15
+MM[6:16,nx,1] <- 25 #grzejnik
+MM[1, 3:18, 1] = g(0) + 15 #okno
+
+
+ 
+for(t in 2:nt){  #uzupełniamy macierze
+  
+  for(j in 2:(nx-1)){  #kolumna
+    
+    for(i in 2:(ny-1)){ #wiersz
+      
+      u_yy = ( MM[i+1, j, t-1] + MM[i-1, j, t-1] - 2*MM[i, j, t-1] ) / (hy^2)
+      u_xx = ( MM[i, j+1, t-1] + MM[i, j-1, t-1] - 2*MM[i, j, t-1] ) / (hx^2)
+      MM[i, j, t] = MM[i, j, t-1] + D*ht*( u_xx + u_yy )
+    }
+    
+  }
+  
+  #Neumann
+  MM[1,,t] = MM[2,,t]
+  MM[ny,,t] = MM[ny-1,,t]
+  MM[,1,t] = MM[,2,t]
+  MM[,nx,t] = MM[,nx-1,t]
+  
+  #grzejnik
+  if(t<3000) MM[6:16,nx,t] <- 25
+  else{
+    if(t<3125) MM[6:16,nx,t] <- MM[6:16,nx,t-1] + 35/125
+    #w godzine nagrzewa sie do 35
+    else  MM[6:16,nx,t] = 35
+  }
+  
+  # okno
+  MM[1, 3:18, t] = g(t*ht) + 15
+
+}
+```
+
+
+
+Zobaczmy mapy ciepła dla I ustawienia grzejnika w chwili T=12 (przed zwiększeniem temperatury grzejnika) oraz T=24.
+Mapy po lewej stronie są dla stałej temperatury grzejnika, a po prawej dla zmiennej.
+
+```{r echo=F, fig.height = 5, fig.width = 6}
+par(mfrow=c(2,2))
+image.plot(M[,,3000])
+image.plot(MM[,,3000])
+image.plot(M[,,nt])
+image.plot(MM[,,nt])
+```
+
+Spójrzmy jeszcze na wykresy minimalnej i średniej temperatury w pokoju:
+
+```{r echo=F}
+min_temp = numeric(nt)
+mean_temp = numeric(nt)
+
+min_temp2 = numeric(nt)
+mean_temp2 = numeric(nt)
+
+
+for(iter in 1:nt){
+  min_temp[iter] = min(M[,,iter])
+  mean_temp[iter] = mean(M[,,iter])
+  
+  min_temp2[iter] = min(MM[,,iter])
+  mean_temp2[iter] = mean(MM[,,iter])
+}
+
+arg = (1:nt)*ht
+arg = arg*4
+
+plot(arg, min_temp, ylim = c(min(min_temp), max(mean_temp2)+3), xlab = "Czas",
+     ylab = "Temperatura", col= "blue", type="l")
+lines(arg, mean_temp, col = "orange")
+lines(arg, min_temp2, col="green")
+lines(arg, mean_temp2, col="red")
+legend("topleft", legend=c("Min temp (stały grzejnik)", "Średnia temp (stały grzejnik)",
+      "Min temp (zmienny grzejnik)", "Średnia temp (zmienny grzejnik)"),
+      col=c("blue", "orange", "green", "red"), lty=c(1, 1, 1, 1),
+       cex=0.7, bg="white")
+```
+
+W pierwszej połowie dnia średnia temperatura jest wyższa w przypadku stałej temperatury grzejnika równej 30 stopni, co jest dosyć oczywiste. Pod koniec dnia średnia temp jest wyższa dla zmiennej temperatury grzejnika.
+
+Analizując wykresy minimalnej temperatury, zauważamy podobne zjawisko, co w poprzednio analizowanym przypadku: w pewnym przedziale czasowym (wtedy, gdy temperatura na dworze jest wysoka w skali doby), minimalna temperatura w pokoju ze zmienną temperaturą grzejnika jest mniejsza, niż w przypadku stałej temperatury. Analizując mapy ciepła widzimy, że o godzinie 12:00 najniższa temperatura nie jest przy oknie, tylko po drugiej stronie pokoju, która przy temp grzejnika 25 stopni nie nagrzała się na tyle, aby osiągnąć temp wyższą niż temp na dworze w tamtym momencie.
+
+# Wnioski
+
+Najbardziej korzystnym rozwiązaniem jest umieszczenie grzejnika przy oknie ze stałą temperaturą równą 30 stopni. Zapewnia to możliwie najmniejsze amplitudy temperatur w pokoju, a także pozwala utrzymać pokój odpowiednio ogrzany.
