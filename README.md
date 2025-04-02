@@ -1,4 +1,4 @@
-# Czego otyczy projekt?
+# Czego dotyczy projekt?
 ....
 
 # Jakie pakiety i bliblioteki są niezbędne?
